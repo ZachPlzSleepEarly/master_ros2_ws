@@ -17,10 +17,18 @@ ament_target_dependencies(publisher_node "rclcpp" "std_msgs" "master_ros2_interf
 add_executable(subscriber_node src/subscriber_node.cpp)
 ament_target_dependencies(subscriber_node "rclcpp" "std_msgs" "master_ros2_interface")
 
+add_executable(simple_server src/simple_server.cpp)
+ament_target_dependencies(simple_server rclcpp master_ros2_interface)
+
+add_executable(simple_client src/simple_client.cpp)
+ament_target_dependencies(simple_client rclcpp master_ros2_interface)
+
 install(
   TARGETS
     publisher_node
     subscriber_node
+    simple_server
+    simple_client
   DESTINATION
     lib/${PROJECT_NAME}
 )
