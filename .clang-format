@@ -1,0 +1,55 @@
+BasedOnStyle: LLVM
+Language: Cpp
+
+# Indentation: 4 spaces
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+# Line length
+ColumnLimit: 120
+
+# Access specifier: public/private 顶格
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+
+# Braces
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: false
+  AfterStruct: false
+  AfterEnum: false
+  AfterNamespace: false
+
+  AfterControlStatement: Never
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+
+# Control statements
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+
+# Wrapping/alignment
+AlignAfterOpenBracket: Align
+AlignOperands: DontAlign
+BreakBeforeBinaryOperators: NonAssignment
+PenaltyBreakAssignment: 1
+PenaltyBreakBeforeFirstCallParameter: 1
+
+# Spacing
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+
+# Pointer/reference
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# Includes
+SortIncludes: false
+
+# Blank lines
+MaxEmptyLinesToKeep: 1

@@ -1,0 +1,18 @@
+{
+  "editor.inlineSuggest.enabled": false,
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "clangd.arguments": [
+    "--background-index",
+    "--compile-commands-dir=${workspaceFolder}",
+    "-j=32",
+    "--header-insertion=never",
+    "--query-driver=/usr/bin/g++",  // 不然会找不到c++的头文件库
+    "--completion-style=detailed"
+  ],
+  "[cpp]": {
+    "editor.defaultFormatter": "xaver.clang-format"
+  },
+  "[c]": {
+    "editor.defaultFormatter": "xaver.clang-format"
+  },
+}

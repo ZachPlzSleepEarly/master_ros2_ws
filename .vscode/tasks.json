@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Update Pylance extraPaths from sys.path (ROS env, zsh)",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "source $HOME/.zshrc && /usr/bin/python3 ${workspaceFolder}/tools/update_vscode_pylance_paths.py"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}
