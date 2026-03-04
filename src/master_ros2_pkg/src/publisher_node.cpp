@@ -13,6 +13,9 @@ public:
 
         custom_pubsliher_ =
             this->create_publisher<master_ros2_interface::msg::CustomMsg>(CUSTOM_PUB_TOPIC_NAME, qos_profile);
+        // 定义 string 和 interger parameters
+        this->declare_parameter<std::string>(DEFAULT_STR_PARAM_NAME, DEFAULT_STR_PARAM_VALUE);
+        this->declare_parameter<int>(DEFAULT_INT_PARAM_NAME, DEFAULT_INT_PARAM_VALUE);
 
         timer_ = this->create_wall_timer(std::chrono::seconds(1), std::bind(&PublisherNode::PublishMessages, this));
     }
@@ -23,6 +26,10 @@ private:
     static const std::string NODE_NAME;
     const std::string STD_PUB_TOPIC_NAME = "std_string_topic";
     const std::string CUSTOM_PUB_TOPIC_NAME = "custom_topic";
+    const std::string DEFAULT_STR_PARAM_NAME = "custom_string";
+    const std::string DEFAULT_INT_PARAM_NAME = "custom_number";
+    const std::string DEFAULT_STR_PARAM_VALUE = "Hello World";
+    const int DEFAULT_INT_PARAM_VALUE = 42;
     const int QOS_KEEPLAST_DEPTH = 10;
 
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
@@ -39,12 +46,22 @@ void PublisherNode::PublishMessages()
     RCLCPP_INFO(this->get_logger(), "Publishing: %s", string_msg.data.c_str());
     publisher_->publish(string_msg);
 
+    // 获取 parameters' value
+    std::string custom_string_param;
+    int custom_number_param;
+    this->get_parameter(DEFAULT_STR_PARAM_NAME, custom_string_param);
+    this->get_parameter(DEFAULT_INT_PARAM_NAME, custom_number_param);
+    
     auto custom_msg = master_ros2_interface::msg::CustomMsg();
-    custom_msg.data = "Custom Hello";
-    custom_msg.number = 42;
+    custom_msg.data = custom_string_param;
+    custom_msg.number = custom_number_param;
     RCLCPP_INFO(this->get_logger(), "Publishing custom message: data=%s, number=%d", custom_msg.data.c_str(),
                 custom_msg.number);
     custom_pubsliher_->publish(custom_msg);
+
+    // 重置 parameters' value
+    this->set_parameter(rclcpp::Parameter(DEFAULT_STR_PARAM_NAME, DEFAULT_STR_PARAM_VALUE));
+    this->set_parameter(rclcpp::Parameter(DEFAULT_INT_PARAM_NAME, DEFAULT_INT_PARAM_VALUE));
 }
 
 int main(int argc, char* argv[])
