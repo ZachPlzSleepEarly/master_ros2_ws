@@ -14,6 +14,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CustomMsg.msg"
   "srv/ConcatStrings.srv"
+  "action/MyCustomAction.action"
 )
 # uncomment the following section in order to fill in
 # further dependencies manually.

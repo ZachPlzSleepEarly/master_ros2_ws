@@ -11,6 +11,7 @@
 
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
+  <depend>rclcpp_action</depend>
   <depend>master_ros2_interface</depend>
 
   <test_depend>ament_lint_auto</test_depend>
