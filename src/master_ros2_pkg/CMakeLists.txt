@@ -39,7 +39,14 @@ install(
     action_server
     action_client
   DESTINATION
-    lib/${PROJECT_NAME}
+    lib/${PROJECT_NAME}/
+)
+
+install(
+  DIRECTORY
+    launch
+  DESTINATION
+    share/${PROJECT_NAME}/
 )
 
 if(BUILD_TESTING)
