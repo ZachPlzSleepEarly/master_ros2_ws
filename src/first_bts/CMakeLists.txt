@@ -17,9 +17,13 @@ find_package(behaviortree_cpp REQUIRED)
 add_executable(sequence_tree src/sequence.cpp)
 ament_target_dependencies(sequence_tree rclcpp std_msgs behaviortree_cpp)
 
+add_executable(number_checker src/number_checker.cpp)
+ament_target_dependencies(number_checker rclcpp std_msgs behaviortree_cpp)
+
 install(
   TARGETS
     sequence_tree
+    number_checker
   RUNTIME DESTINATION
     lib/${PROJECT_NAME}
 )
