@@ -33,6 +33,12 @@ ament_target_dependencies(reach_location_server rclcpp rclcpp_action std_msgs ge
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 target_link_libraries(reach_location_server "${cpp_typesupport_target}")
 
+# 定义 action client 可执行文件
+add_executable(reach_location_client src/reach_location_client.cpp)
+ament_target_dependencies(reach_location_client rclcpp rclcpp_action std_msgs geometry_msgs)
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+target_link_libraries(reach_location_client "${cpp_typesupport_target}")
+
 install(
   DIRECTORY
     trees
@@ -43,6 +49,7 @@ install(
 install(
   TARGETS
     reach_location_server
+    reach_location_client
   DESTINATION
     lib/${PROJECT_NAME}
 )
