@@ -8,8 +8,8 @@ using Action = bt_action_server::action::ReachLocation;
 
 bool done_ = false;
 
-static constexpr const char* NODE_NAME = "action_client_node";
-static constexpr const char* SERVER_NAME = "reach_locatoin";
+static constexpr const char* NODE_NAME = "reach_location_action_client";
+static constexpr const char* SERVER_NAME = "reach_location";
 
 void ResultCallback(const rclcpp_action::ClientGoalHandle<Action>::WrappedResult& result)
 {
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     auto goal = ReachLocationClient::Action::Goal();
     goal.x = 4;
     goal.y = 4;
-    goal.timeout = 10;
+    goal.timeout = 100;
     RCLCPP_INFO(node->get_logger(), "Goal: x='%f' y='%f' timeout='%f'", goal.x, goal.y, goal.timeout);
 
     // 发送 Goal，等待结果

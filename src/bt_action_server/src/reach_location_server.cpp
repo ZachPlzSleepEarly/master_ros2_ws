@@ -31,8 +31,8 @@ private:
     void HandleAccepted(const std::shared_ptr<GoalHandleReachLocation> goal_handle);
     void Execute(const std::shared_ptr<GoalHandleReachLocation> goal_handle);
 
-    static constexpr const char* NODE_NAME = "reach_location_actoin_server";
-    static constexpr const char* SERVER_NAME = "reach_locatoin";
+    static constexpr const char* NODE_NAME = "reach_location_action_server";
+    static constexpr const char* SERVER_NAME = "reach_location";
 
     rclcpp_action::Server<ReachLocation>::SharedPtr action_server_;
 };

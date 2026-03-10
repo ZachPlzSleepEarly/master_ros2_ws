@@ -39,9 +39,15 @@ ament_target_dependencies(reach_location_client rclcpp rclcpp_action std_msgs ge
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 target_link_libraries(reach_location_client "${cpp_typesupport_target}")
 
+add_executable(bt_action src/bt_action.cpp)
+ament_target_dependencies(bt_action rclcpp rclcpp_action std_msgs geometry_msgs behaviortree_cpp)
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+target_link_libraries(bt_action "${cpp_typesupport_target}")
+
 install(
   DIRECTORY
     trees
+    launch
   DESTINATION
     share/${PROJECT_NAME}
 )
@@ -50,6 +56,7 @@ install(
   TARGETS
     reach_location_server
     reach_location_client
+    bt_action
   DESTINATION
     lib/${PROJECT_NAME}
 )
