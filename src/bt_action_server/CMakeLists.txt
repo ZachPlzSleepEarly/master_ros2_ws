@@ -26,11 +26,25 @@ rosidl_generate_interfaces(
     geometry_msgs
 )
 
+# 定义 action server 可执行文件
+add_executable(reach_location_server src/reach_location_server.cpp)
+ament_target_dependencies(reach_location_server rclcpp rclcpp_action std_msgs geometry_msgs)
+# 把自定义 ROS 2 Action 的 typesupport 库链接到这个节点
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+target_link_libraries(reach_location_server "${cpp_typesupport_target}")
+
 install(
   DIRECTORY
     trees
   DESTINATION
     share/${PROJECT_NAME}
+)
+
+install(
+  TARGETS
+    reach_location_server
+  DESTINATION
+    lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
