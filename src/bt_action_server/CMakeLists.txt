@@ -14,6 +14,17 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
+# 生成 action interface
+rosidl_generate_interfaces(
+  ${PROJECT_NAME}
+    "action/ReachLocation.action"
+  DEPENDENCIES
+    std_msgs
+    geometry_msgs
+)
 
 install(
   DIRECTORY
