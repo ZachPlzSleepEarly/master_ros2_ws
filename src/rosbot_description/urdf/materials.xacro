@@ -1,8 +1,62 @@
-<?xml version="1.0" ?>
-<robot name="rosbot" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+<?xml version="1.0"?>
+<!--
+  XML declaration
+  指定 XML 版本。URDF / Xacro 文件本质都是 XML。
+-->
 
-<material name="silver">
-  <color rgba="0.700 0.700 0.700 1.000"/>
-</material>
+<robot name="rosbot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+  robot:
+    URDF/Xacro 文件的根节点。
+
+  name="rosbot":
+    机器人模型名称。在 ROS / Gazebo / RViz 中会作为模型标识。
+
+  xmlns:xacro="http://www.ros.org/wiki/xacro":
+    声明 xacro 的 XML namespace（命名空间）。
+    
+    作用：
+    允许在该文件中使用 xacro 的扩展语法，例如：
+        <xacro:property>
+        <xacro:macro>
+        <xacro:include>
+        <xacro:if>
+
+    本文件虽然暂时没有使用 xacro 指令，
+    但几乎所有 ROS2 机器人描述文件都会默认声明该 namespace，
+    方便后续扩展。
+-->
+
+  <material name="silver">
+    <!--
+    material:
+      定义一个可复用的材质。
+
+    name="silver":
+      材质名称。
+      在 link 的 visual 中可以通过：
+
+          <material name="silver"/>
+
+      来复用该材质。
+  -->
+
+    <color rgba="0.700 0.700 0.700 1.000" />
+    <!--
+      color:
+        定义材质颜色。
+
+      rgba:
+        Red   Green   Blue   Alpha
+
+      取值范围：
+        0.0 ~ 1.0
+
+      本例：
+        0.700 0.700 0.700  → 银灰色
+        1.000              → 完全不透明
+    -->
+
+  </material>
 
 </robot>

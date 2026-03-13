@@ -1,34 +1,58 @@
+# ros_gz_bridge 配置文件
+# 作用：定义 ROS2 topic 和 Gazebo topic 之间的消息转换规则
+
 - ros_topic_name: "/clock"
   gz_topic_name: "/clock"
   ros_type_name: "rosgraph_msgs/msg/Clock"
   gz_type_name: "gz.msgs.Clock"
   direction: GZ_TO_ROS
+  # Gazebo仿真时间 → ROS
+  # ROS2节点通常启用 use_sim_time，需要这个topic
+
+
 
 - topic_name: "odom"
   ros_type_name: "nav_msgs/msg/Odometry"
   gz_type_name: "gz.msgs.Odometry"
   direction: GZ_TO_ROS
+  # Gazebo里程计 → ROS
+  # DiffDrive插件生成的 odom 数据
+
+
 
 - ros_topic_name: "/scan"
   gz_topic_name: "/scan"
   ros_type_name: "sensor_msgs/msg/LaserScan"
   gz_type_name: "gz.msgs.LaserScan"
-  direction: GZ_TO_ROS 
-  
+  direction: GZ_TO_ROS
+  # Gazebo LiDAR → ROS LaserScan
+  # 用于 SLAM / Nav2
+
+
+
 - ros_topic_name: "/tf"
   gz_topic_name: "/tf"
   ros_type_name: "tf2_msgs/msg/TFMessage"
   gz_type_name: "gz.msgs.Pose_V"
-  direction: GZ_TO_ROS   
+  direction: GZ_TO_ROS
+  # Gazebo TF → ROS TF tree
+
+
 
 - ros_topic_name: "/joint_states"
   gz_topic_name: "/joint_states"
   ros_type_name: "sensor_msgs/msg/JointState"
   gz_type_name: "gz.msgs.Model"
-  direction: GZ_TO_ROS   
+  direction: GZ_TO_ROS
+  # Gazebo joint状态 → ROS
+  # RViz / robot_state_publisher 需要
+
+
 
 - ros_topic_name: "/cmd_vel"
   gz_topic_name: "/cmd_vel"
   ros_type_name: "geometry_msgs/msg/TwistStamped"
   gz_type_name: "gz.msgs.Twist"
-  direction: ROS_TO_GZ   
+  direction: ROS_TO_GZ
+  # ROS控制指令 → Gazebo
+  # Nav2 / teleop 发送的速度控制
