@@ -18,15 +18,10 @@ def generate_launch_description():
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_ros_gz_rrbot = get_package_share_directory('diffbot_gazebo')
     world_file = LaunchConfiguration("world_file", default = join(pkg_ros_gz_rrbot, "worlds", "empty.world"))
-
+    ros_gz_bridge_config = os.path.join(pkg_ros_gz_rrbot, 'config', 'ros_gz_bridge_gazebo.yaml')
     # Parse robot description from xacro
     robot_description_file = os.path.join(pkg_ros_gz_rrbot, 'urdf/gz', 'diffbot.xacro')
-    ros_gz_bridge_config = os.path.join(pkg_ros_gz_rrbot, 'config', 'ros_gz_bridge_gazebo.yaml')
-    
-    robot_description_config = xacro.process_file(
-        robot_description_file
-    )
-    robot_description = {'robot_description': robot_description_config.toxml()}
+    robot_description = {'robot_description': xacro.process_file(robot_description_file).toxml()}
 
     # Start Robot state publisher
     robot_state_publisher = Node(
@@ -42,7 +37,6 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(join(pkg_ros_gz_sim, "launch", "gz_sim.launch.py")),
         launch_arguments={
             "gz_args" : PythonExpression(["'", world_file, " -r'"])
-
         }.items()
     )
 
@@ -69,8 +63,7 @@ def generate_launch_description():
         output='screen',
     )
 
-
-      # Bridge ROS topics and Gazebo messages for establishing communication
+    # Bridge ROS topics and Gazebo messages for establishing communication
     start_gazebo_ros_bridge_cmd = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -79,10 +72,10 @@ def generate_launch_description():
         }],
         output='screen'
       )  
-    # Start bridge fo cameras    
+    # Start bridge fo cameras
     start_gazebo_ros_image_bridge_cmd = Node(
         package='ros_gz_image',
-        executable='image_bridge',
+        executable='image_bridge',  # image_bridge 图像专属桥接
         arguments=[
           '/camera/depth_image',
           '/camera/image',
@@ -91,25 +84,23 @@ def generate_launch_description():
           ('/camera/depth_image', '/camera/depth/image_rect_raw'),
           ('/camera/image', '/camera/color/image_raw'),
         ],
-      )
+    )
 
 
     # Launch the rqt_steering controller standalone
     rqt_robot_steering = ExecuteProcess(
-            cmd=['rqt', '--standalone', 'rqt_robot_steering'],
-            output='screen',
-        )
-
-
-    return LaunchDescription(
-        [
-            # Nodes and Launches
-            gazebo,
-            spawn,
-            start_gazebo_ros_bridge_cmd,
-            start_gazebo_ros_image_bridge_cmd,
-            robot_state_publisher,
-            rviz,
-            rqt_robot_steering,
-        ]
+        cmd=['rqt', '--standalone', 'rqt_robot_steering'],
+        output='screen',
     )
+
+
+    return LaunchDescription([
+        # Nodes and Launches
+        gazebo,
+        spawn,
+        start_gazebo_ros_bridge_cmd,
+        start_gazebo_ros_image_bridge_cmd,
+        robot_state_publisher,
+        rviz,
+        rqt_robot_steering,
+    ])

@@ -53,8 +53,8 @@ public:
         interface_names.reserve(joint_count_ * STATE_INTERFACES_PER_JOINT);
 
         for (const auto& joint_name : joint_names_) {
-            interface_names.emplace_back(joint_name + POSITION_INTERFACE_SUFFIX);
-            interface_names.emplace_back(joint_name + VELOCITY_INTERFACE_SUFFIX);
+            interface_names.emplace_back(joint_name + POSITION_INTERFACE);
+            interface_names.emplace_back(joint_name + VELOCITY_INTERFACE);
         }
 
         return {controller_interface::interface_configuration_type::INDIVIDUAL, interface_names};
@@ -66,7 +66,7 @@ public:
         interface_names.reserve(joint_count_);
 
         for (const auto& joint_name : joint_names_) {
-            interface_names.emplace_back(joint_name + POSITION_INTERFACE_SUFFIX);
+            interface_names.emplace_back(joint_name + POSITION_INTERFACE);
         }
 
         return {controller_interface::interface_configuration_type::INDIVIDUAL, interface_names};
@@ -123,16 +123,26 @@ public:
 private:
     static constexpr const char* JOINTS_PARAM_NAME = "joints";
     static constexpr const char* SINE_PARAM_NAME = "/sine_param";
-    static constexpr const char* POSITION_INTERFACE_SUFFIX = "/position";
-    static constexpr const char* VELOCITY_INTERFACE_SUFFIX = "/velocity";
-    
+    static constexpr const char* POSITION_INTERFACE = "/position";
+    static constexpr const char* VELOCITY_INTERFACE = "/velocity";
+
     static constexpr std::size_t SINE_PARAM_QOS_DEPTH = 10;
     static constexpr std::size_t STATE_INTERFACES_PER_JOINT = 2;
 
     static constexpr double PI = 3.14159265358979323846;
     static constexpr double TWO_PI = 2.0 * PI;
 
-private:
+    std::size_t joint_count_{0};
+    double elapsed_time_seconds_{0.0};
+    
+    std::vector<std::string> joint_names_;
+    std::vector<double> amplitudes_;
+    std::vector<double> frequencies_hz_;
+    std::vector<double> initial_positions_;
+    std::vector<double> desired_positions_;
+
+    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr sine_param_subscription_;
+
     void InitializeControllerState()
     {
         amplitudes_.assign(joint_count_, 0.0);
@@ -183,19 +193,6 @@ private:
     {
         return joint_index * STATE_INTERFACES_PER_JOINT;
     }
-
-private:
-    std::vector<std::string> joint_names_;
-    std::size_t joint_count_{0};
-
-    std::vector<double> amplitudes_;
-    std::vector<double> frequencies_hz_;
-    std::vector<double> initial_positions_;
-    std::vector<double> desired_positions_;
-
-    double elapsed_time_seconds_{0.0};
-
-    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr sine_param_subscription_;
 };
 
 } // namespace sine_controller

@@ -1,4 +1,5 @@
 {
+  "editor.formatOnSave": false,
   "editor.inlineSuggest.enabled": false,
   "C_Cpp.intelliSenseEngine": "disabled",
   "clangd.arguments": [
@@ -14,6 +15,9 @@
   },
   "[c]": {
     "editor.defaultFormatter": "xaver.clang-format"
+  },
+  "[xml]": {
+    "editor.formatOnSave": false
   },
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
 }

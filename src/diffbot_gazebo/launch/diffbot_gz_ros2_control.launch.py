@@ -17,16 +17,13 @@ def generate_launch_description():
     # Package Directories
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
     pkg_ros_gz_rrbot = get_package_share_directory('diffbot_gazebo')
-    world_file = LaunchConfiguration("world_file", default = join(pkg_ros_gz_rrbot, "worlds", "empty.world"))
 
-    # Parse robot description from xacro
-    robot_description_file = os.path.join(pkg_ros_gz_rrbot, 'urdf/ros2_control', 'diffbot.xacro')
+    world_file = LaunchConfiguration("world_file", default = join(pkg_ros_gz_rrbot, "worlds", "empty.world"))
     ros_gz_bridge_config = os.path.join(pkg_ros_gz_rrbot, 'config', 'ros_gz_bridge_control.yaml')
     
-    robot_description_config = xacro.process_file(
-        robot_description_file
-    )
-    robot_description = {'robot_description': robot_description_config.toxml()}
+    # Parse robot description from xacro
+    robot_description_file = os.path.join(pkg_ros_gz_rrbot, 'urdf/ros2_control', 'diffbot.xacro')
+    robot_description = {'robot_description': xacro.process_file(robot_description_file).toxml()}
 
     # Start Robot state publisher
     robot_state_publisher = Node(
@@ -42,7 +39,6 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(join(pkg_ros_gz_sim, "launch", "gz_sim.launch.py")),
         launch_arguments={
             "gz_args" : PythonExpression(["'", world_file, " -r'"])
-
         }.items()
     )
 
@@ -69,8 +65,7 @@ def generate_launch_description():
         output='screen',
     )
 
-
-      # Bridge ROS topics and Gazebo messages for establishing communication
+    # Bridge ROS topics and Gazebo messages for establishing communication
     start_gazebo_ros_bridge_cmd = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -106,11 +101,11 @@ def generate_launch_description():
         )
 
 
-        # Launch the rqt_joint_trajectory_controller standalone
+    # Launch the rqt_joint_trajectory_controller standalone
     rqt_robot_steering = ExecuteProcess(
             cmd=['rqt', '--standalone', 'rqt_robot_steering'],
             output='screen',
-        )
+    )
 
     # Start arm controller
     
