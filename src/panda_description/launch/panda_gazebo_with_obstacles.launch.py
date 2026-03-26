@@ -8,6 +8,8 @@ from launch_ros.substitutions import FindPackageShare
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.substitutions import PathJoinSubstitution
 from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 import xacro
 
 
@@ -21,12 +23,17 @@ def generate_launch_description():
         name='GZ_SIM_RESOURCE_PATH',
         value=[pkg_parent]
     )
-    declared_arguments = []
-    declared_arguments.append(gz_resource_path)
+    declared_arguments = [
+        gz_resource_path
+    ]
+
+    # Get sdf world file path
+    sdf_file_path = os.path.join(pkg_share, 'world', 'planning_world.sdf')
 
     # Parse URDF
-    robot_description_file = os.path.join(pkg_share, 'urdf', 'panda.urdf.xacro')
-    robot_description = {'robot_description': xacro.process_file(robot_description_file).toxml()}
+    robot_description = {
+        'robot_description': xacro.process_file(os.path.join(pkg_share, 'urdf', 'panda.urdf.xacro')).toxml()
+    }
 
     use_sim_time_true = {'use_sim_time': True}
 
@@ -41,25 +48,52 @@ def generate_launch_description():
         ]
     )
 
-    # Spawn
+    # Spawn robot and controllers
     spawn_node = Node(
-        package='ros_gz_sim', executable='create',
-        arguments=['-name', 'panda', '-topic', '/robot_description'],
+        package='ros_gz_sim',
+        executable='create',
+        arguments=[
+            '-name', 'panda',
+            '-topic', '/robot_description'
+        ],
         output='screen'
     )
-
-    load_joint_state_broadcaster = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'joint_state_broadcaster'],
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'joint_state_broadcaster',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '60',   # 等待 controller manager 服务可用的最长时间
+            '--switch-timeout', '20',               # 等待 Controller 生效的最长时间。
+        ],
         output='screen'
     )
-
-    sdf_file_path = os.path.join(
-        FindPackageShare('panda_description').find('panda_description'),
-        'world',
-        'planning_world.sdf'
+    arm_controller_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'arm_controller',
+            '--controller-manager', '/controller_manager',
+            '--controller-manager-timeout', '60',   # 等待 controller manager 服务可用的最长时间
+            '--switch-timeout', '20',               # 等待 Controller 生效的最长时间。
+        ],
+        output='screen'
     )
-    ignition_gazebo_node = IncludeLaunchDescription(
+    delay_joint_state_broadcaster_after_spawn = RegisterEventHandler(
+        OnProcessExit(
+            target_action=spawn_node,
+            on_exit=[joint_state_broadcaster_spawner]
+        )
+    )
+    delay_arm_controller_after_jsb = RegisterEventHandler(
+        OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[arm_controller_spawner]
+        )
+    )
+
+    gz_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([
                 FindPackageShare('ros_gz_sim'),
@@ -72,7 +106,7 @@ def generate_launch_description():
         }.items()
     )
 
-    clock_bridge_node = Node(
+    bridge_node = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         output='screen',
@@ -82,59 +116,28 @@ def generate_launch_description():
         }],
     )
 
-    load_position_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'arm_controller'],
-        output='screen'
-    )
-
     load_eef_controller = ExecuteProcess(
         cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
              'eef_controller'],
         output='screen'
     )
-    color_camera_bridge = Node(
-        package='ros_gz_bridge', executable='parameter_bridge',
-        name='color_camera_bridge',
-        output='screen',
-        parameters=[use_sim_time_true],
-        arguments=['/color_camera' + '@sensor_msgs/msg/Image' + '[ignition.msgs.Image'],
-        remappings=[('/color_camera', '/color_camera')]
-    )
-
-    depth_camera_bridge = Node(
-        package='ros_gz_bridge', executable='parameter_bridge',
-        name='depth_camera_bridge',
-        output='screen',
-        parameters=[use_sim_time_true],
-        arguments=[
-            '/depth_camera' + '@sensor_msgs/msg/Image' + '[ignition.msgs.Image',
-            '/depth_camera/points' + '@sensor_msgs/msg/PointCloud2' + '[ignition.msgs.PointCloudPacked'
-        ],
-        remappings=[
-            ('/depth_camera', '/depth_camera'),
-            ('/depth_camera/points', '/depth_camera/points')
-        ]
-    )
 
     depth_cam_data2cam_link_tf = Node(
-        package='tf2_ros', executable='static_transform_publisher',
+        package='tf2_ros',
+        executable='static_transform_publisher',
         name='cam3Tolink',
         output='log',
         arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', 'camera_link', 'panda/link0/d435_depth']
     )
 
     nodes = [
-        load_joint_state_broadcaster,
-        load_position_controller,
-        gz_resource_path,
+        gz_node,
         robot_state_publisher_node,
-        spawn_node,
-        ignition_gazebo_node,
-        clock_bridge_node,
-        color_camera_bridge,
-        depth_camera_bridge,
+        bridge_node,
         depth_cam_data2cam_link_tf,
+        spawn_node,
+        delay_joint_state_broadcaster_after_spawn,
+        delay_arm_controller_after_jsb,
     ]
 
     ld = LaunchDescription(declared_arguments + nodes)
