@@ -1,11 +1,12 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
-import launch_ros.actions
+from launch_ros.actions import SetParameter
+
 
 def generate_launch_description():
     moveit_config = MoveItConfigsBuilder("panda").to_moveit_configs()
-    launch_ros.actions.SetParameter(name='use_sim_time', value=True)
+    SetParameter(name='use_sim_time', value=True)
     tutorial_node = Node(
         package="panda_moveit_control",
         executable="joint_space_planning",
