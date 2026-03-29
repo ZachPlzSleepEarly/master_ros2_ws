@@ -1,143 +1,173 @@
+#include <rclcpp/rclcpp.hpp>
+
+#include <rclcpp/utilities.hpp>
+#include <tf2/exceptions.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <shape_msgs/msg/solid_primitive.hpp>
+
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-
-
-
-#include <moveit_msgs/msg/display_robot_state.hpp>
-#include <moveit_msgs/msg/display_trajectory.hpp>
-
-#include <moveit_msgs/msg/attached_collision_object.hpp>
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
-
-
-
-#include <moveit_msgs/msg/display_robot_state.hpp>
-#include <moveit_msgs/msg/display_trajectory.hpp>
-
-#include <moveit_msgs/msg/attached_collision_object.hpp>
 #include <moveit_msgs/msg/collision_object.hpp>
 
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include "geometry_msgs/msg/transform_stamped.hpp"
-#include "tf2/exceptions.h"
-#include "tf2_ros/transform_listener.h"
-#include "tf2_ros/buffer.h"
-#include "boost/thread.hpp"
-
-class PlanningWithObstacles : public rclcpp::Node
-{
+class PlanningWithObstacles : public rclcpp::Node {
 public:
-    PlanningWithObstacles() : Node("cartesian_planning") {}
+    PlanningWithObstacles() : Node(NODE_NAME) {}
+
     void run();
     void plan();
     void setup_world();
-private:
-    rclcpp::Node::SharedPtr _node;
-    moveit::planning_interface::MoveGroupInterface *_move_group; //(_node, "arm");
 
+private:
+    static constexpr const char* NODE_NAME = "planning_with_obstacles";
+
+    /**
+     * @brief
+     * 当前对象自己这个 Node 的 shared_ptr 形式。
+     * 这里需要 shared_ptr<Node>，是因为：
+     * 1) executor 需要托管这个 Node，持续处理 TF / service / action 等回调
+     * 2) MoveIt 的 MoveGroupInterface 也更适合接收 shared_ptr<Node>
+     * 注意：这不是创建新的 Node，只是当前这个 Node 的 shared_ptr 视图。
+     */
+    rclcpp::Node::SharedPtr shared_self_;
+
+    std::unique_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
 };
 
-void PlanningWithObstacles::plan() {
-    bool tf_found = false;    
-    geometry_msgs::msg::TransformStamped t;
-    std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
-    std::unique_ptr<tf2_ros::Buffer> tf_buffer;
-    tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+void PlanningWithObstacles::plan()
+{
+    geometry_msgs::msg::TransformStamped tf_base_to_eef;
 
-    //moveit::planning_interface::MoveGroupInterface move_group(_node, "arm");
-    _move_group = new moveit::planning_interface::MoveGroupInterface(_node, "arm");
-    
-    std::string fromFrameRel = _move_group->getPlanningFrame().c_str();
-    std::string toFrameRel =   _move_group->getEndEffectorLink().c_str();
-    
+    auto tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+    auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+
+    move_group_ = std::make_unique<moveit::planning_interface::MoveGroupInterface>(shared_self_, "arm");
+
+    // 机器人基座坐标系(srdf virtual_joint 的 parent)
+    const std::string planning_frame = move_group_->getPlanningFrame();
+    // 法兰盘坐标系
+    const std::string end_effector_frame = move_group_->getEndEffectorLink();
+
     setup_world();
 
-    sleep(3);
-    while ( !tf_found ) {    
+    rclcpp::sleep_for(std::chrono::seconds(3));
+
+    while (rclcpp::ok()) {
         try {
-            t = tf_buffer->lookupTransform(fromFrameRel, toFrameRel, tf2::TimePointZero);
-            tf_found = true;
-        } catch (const tf2::TransformException & ex) {
-            RCLCPP_INFO(this->get_logger(), "Could not transform %s to %s: %s Try again",toFrameRel.c_str(), fromFrameRel.c_str(), ex.what());
-            sleep(1);
+            tf_base_to_eef = tf_buffer->lookupTransform(planning_frame, end_effector_frame, tf2::TimePointZero);
+            break;
+        } catch (const tf2::TransformException& ex) {
+            RCLCPP_INFO(this->get_logger(), "Could not transform %s to %s: %s. Retry...", end_effector_frame.c_str(),
+                        planning_frame.c_str(), ex.what());
+            rclcpp::sleep_for(std::chrono::seconds(1));
         }
     }
-    
+
+    // 设置终点坐标
     geometry_msgs::msg::Pose target_pose;
-    std::vector<geometry_msgs::msg::Pose> waypoints;
-    target_pose.orientation.w = t.transform.rotation.w; target_pose.orientation.x = t.transform.rotation.x; target_pose.orientation.y = t.transform.rotation.y;
-    target_pose.orientation.z = t.transform.rotation.z; target_pose.position.x = t.transform.translation.x; target_pose.position.y = t.transform.translation.y;
-    target_pose.position.z = t.transform.translation.z;
+    target_pose.orientation.w = tf_base_to_eef.transform.rotation.w;
+    target_pose.orientation.x = tf_base_to_eef.transform.rotation.x;
+    target_pose.orientation.y = tf_base_to_eef.transform.rotation.y;
+    target_pose.orientation.z = tf_base_to_eef.transform.rotation.z;
+    target_pose.position.x = tf_base_to_eef.transform.translation.x;
+    target_pose.position.y = tf_base_to_eef.transform.translation.y;
+    target_pose.position.z = tf_base_to_eef.transform.translation.z;
+
     target_pose.position.x += 0.3;
-    _move_group->setPoseTarget(target_pose); 
-    moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-    bool success = (_move_group->plan(my_plan) == moveit::core::MoveItErrorCode::SUCCESS);
-    _move_group->move(); 
+    move_group_->setPoseTarget(target_pose);
 
+    // 运动路径规划、执行
+    moveit::planning_interface::MoveGroupInterface::Plan motion_plan;
+    if (move_group_->plan(motion_plan) == moveit::core::MoveItErrorCode::SUCCESS) {
+        move_group_->move();
+    } else {
+        RCLCPP_ERROR(this->get_logger(), "Motion planning failed");
+    }
+
+    rclcpp::shutdown();
 }
 
+void PlanningWithObstacles::run()
+{
+    shared_self_ = shared_from_this();
 
-void PlanningWithObstacles::run() {
-    auto node = rclcpp::Node::make_shared("CartesianPlan");
-    _node = node;
-    boost::thread cartesian_plan_t( &PlanningWithObstacles::plan, this);
-    rclcpp::spin(node);
+    // 子线程执行 planning / move
+    std::thread planning_thread(&PlanningWithObstacles::plan, this);
+
+    // 主线程持续处理 ROS 回调
+    rclcpp::executors::SingleThreadedExecutor executor;
+    executor.add_node(shared_self_);
+    executor.spin();
+
+    if (planning_thread.joinable()) {
+        planning_thread.join();
+    }
 }
 
-int main(int argc, char * argv[]) {
-  rclcpp::init(argc, argv);
-  PlanningWithObstacles cp;
-  cp.run();
-}
-
-
-void PlanningWithObstacles::setup_world() {
-
+void PlanningWithObstacles::setup_world()
+{
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    moveit_msgs::msg::CollisionObject obstacle;
-    obstacle.header.frame_id = _move_group->getPlanningFrame();
-    obstacle.id = "table";
-    shape_msgs::msg::SolidPrimitive primitive;
-    primitive.type = primitive.BOX;
-    primitive.dimensions.resize(3);
-    primitive.dimensions[primitive.BOX_X] = 0.1;
-    primitive.dimensions[primitive.BOX_Y] = 1.5;
-    primitive.dimensions[primitive.BOX_Z] = 0.3;
-    geometry_msgs::msg::Pose bp;
-    bp.orientation.w = 1.0;
-    bp.position.x = 0.48;
-    bp.position.y = 0.0;
-    bp.position.z = 0.25;
 
-    obstacle.primitives.push_back(primitive);
-    obstacle.primitive_poses.push_back(bp);
-    obstacle.operation = obstacle.ADD;
-    planning_scene_interface.applyCollisionObject(obstacle);
+    // 添加碰撞物（桌子）到世界
+    moveit_msgs::msg::CollisionObject table_collision_object;
+    table_collision_object.id = "table";
+    table_collision_object.header.frame_id = move_group_->getPlanningFrame();
+    // 形状、尺寸
+    shape_msgs::msg::SolidPrimitive table_primitive;
+    table_primitive.type = table_primitive.BOX;
+    table_primitive.dimensions.resize(3);
+    table_primitive.dimensions[shape_msgs::msg::SolidPrimitive::BOX_X] = 0.1;
+    table_primitive.dimensions[shape_msgs::msg::SolidPrimitive::BOX_Y] = 1.5;
+    table_primitive.dimensions[shape_msgs::msg::SolidPrimitive::BOX_Z] = 0.3;
+    // 位姿
+    geometry_msgs::msg::Pose table_pose;
+    table_pose.orientation.w = 1.0;
+    table_pose.position.x = 0.48;
+    table_pose.position.y = 0.0;
+    table_pose.position.z = 0.25;
 
-    
-    moveit_msgs::msg::CollisionObject grasping_object;
-    grasping_object.id = "grasp";
-    shape_msgs::msg::SolidPrimitive grasping_object_primitive;
-    grasping_object_primitive.type = primitive.CYLINDER;
-    grasping_object_primitive.dimensions.resize(2);
-    grasping_object_primitive.dimensions[primitive.CYLINDER_HEIGHT] = 0.1;
-    grasping_object_primitive.dimensions[primitive.CYLINDER_RADIUS] = 0.04;
-    grasping_object.header.frame_id = _move_group->getEndEffectorLink();
-    geometry_msgs::msg::Pose grab_pose;
-    grab_pose.orientation.w = 1.0;
-    grab_pose.position.z = 0.28;
-    grasping_object.primitives.push_back(grasping_object_primitive);
-    grasping_object.primitive_poses.push_back(grab_pose);
-    grasping_object.operation = grasping_object.ADD;
-    planning_scene_interface.applyCollisionObject(grasping_object);
-    std::vector<std::string> connection_links;
-    
-    connection_links.push_back ( "panda_rightfinger" );
-    connection_links.push_back ( "panda_leftfinger" );
-    _move_group->attachObject(grasping_object.id, "hand", connection_links);
+    table_collision_object.primitives.push_back(table_primitive);
+    table_collision_object.primitive_poses.push_back(table_pose);
+    table_collision_object.operation = table_collision_object.ADD;
 
+    planning_scene_interface.applyCollisionObject(table_collision_object);
 
+    // 添加碰撞物（抓取物体）到世界
+    moveit_msgs::msg::CollisionObject grasp_collision_object;
+    grasp_collision_object.id = "grasp";
+    grasp_collision_object.header.frame_id = move_group_->getEndEffectorLink();
+    // 形状、尺寸
+    shape_msgs::msg::SolidPrimitive grasp_primitive;
+    grasp_primitive.type = grasp_primitive.CYLINDER;
+    grasp_primitive.dimensions.resize(2);
+    grasp_primitive.dimensions[shape_msgs::msg::SolidPrimitive::CYLINDER_HEIGHT] = 0.1;
+    grasp_primitive.dimensions[shape_msgs::msg::SolidPrimitive::CYLINDER_RADIUS] = 0.04;
+    // 位姿
+    geometry_msgs::msg::Pose grasp_object_pose;
+    grasp_object_pose.orientation.w = 1.0;
+    grasp_object_pose.position.z = 0.28;
+
+    grasp_collision_object.primitives.push_back(grasp_primitive);
+    grasp_collision_object.primitive_poses.push_back(grasp_object_pose);
+    grasp_collision_object.operation = grasp_collision_object.ADD;
+
+    planning_scene_interface.applyCollisionObject(grasp_collision_object);
+
+    // 把抓取物体附着在手上（告诉MoveIt grasp 物体不是普通障碍物，而是被机械手 hand 抓住）
+    std::vector<std::string> touch_links;
+    touch_links.push_back("panda_rightfinger");
+    touch_links.push_back("panda_leftfinger");
+
+    move_group_->attachObject(grasp_collision_object.id, "hand", touch_links);
+}
+
+int main(int argc, char* argv[])
+{
+    rclcpp::init(argc, argv);
+
+    auto planning_node = std::make_shared<PlanningWithObstacles>();
+    planning_node->run();
+
+    return 0;
 }
