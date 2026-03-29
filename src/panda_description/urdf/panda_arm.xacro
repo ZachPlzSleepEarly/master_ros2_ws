@@ -405,6 +405,7 @@
           </noise>
         </camera>
       </sensor>
+      <!-- 为当前 link 关联一个深度相机 -->
       <sensor name='d435_depth' type='depth_camera'>
         <always_on>1</always_on>
         <update_rate>15</update_rate>
@@ -428,6 +429,7 @@
           </noise>
         </camera>
 
+        <!-- 添加一个插件来处理从仿真环境当中采集到的数据 -->
         <plugin filename="libgz-sim-sensors-system.so" name="gz::sim::systems::Sensors">
           <render_engine>ogre</render_engine>
         </plugin>
